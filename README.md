@@ -1,2 +1,6 @@
-# cpp-md4c-demo
-Demo code for using md4c with with c++
+# md4c c++ minimal demo
+
+## Notes
+
+- In the original `.h` why does the typedef come before the struct?
+- Why there is a typedef at all?
