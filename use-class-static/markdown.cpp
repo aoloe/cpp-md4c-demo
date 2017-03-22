@@ -1,8 +1,42 @@
 #include <string>
 #include <iostream>
-#include "md4c/md4c.h"
 
-int enter_block_callback(MD_BLOCKTYPE type, void* /*detail*/, void* /*userdata*/)
+#include "markdown.h"
+#include "../md4c/md4c.h"
+
+int Markdown::enter_block_callback(MD_BLOCKTYPE type, void* detail, void* userdata)
+{
+    static_cast<Markdown*>(userdata)->enter_block(type, detail);
+}
+
+int Markdown::leave_block_callback(MD_BLOCKTYPE type, void* detail, void* userdata)
+{
+    static_cast<Markdown*>(userdata)->leave_block(type, detail);
+}
+
+int Markdown::enter_span_callback(MD_SPANTYPE type, void* detail, void* userdata)
+{
+    static_cast<Markdown*>(userdata)->enter_span(type, detail);
+}
+
+int Markdown::leave_span_callback(MD_SPANTYPE type, void* detail, void* userdata)
+{
+    static_cast<Markdown*>(userdata)->leave_span(type, detail);
+}
+
+int Markdown::text_callback(MD_TEXTTYPE type, const MD_CHAR* text, MD_SIZE size, void* userdata)
+{
+    std::string s = text;
+    static_cast<Markdown*>(userdata)->text(type, s.substr(0, size));
+    // static_cast<Markdown*>(userdata)->text(type, std::string(text, text + size));
+}
+
+void Markdown::debug_log_callback(const char* msg, void* userdata)
+{
+    static_cast<Markdown*>(userdata)->debug_log(msg);
+}
+
+int Markdown::enter_block(MD_BLOCKTYPE type, void* /*detail*/)
 {
     switch(type) {
         case MD_BLOCK_DOC:      /* noop */ break;
@@ -25,12 +59,12 @@ int enter_block_callback(MD_BLOCKTYPE type, void* /*detail*/, void* /*userdata*/
     return 0;
 }
 
-int leave_block_callback(MD_BLOCKTYPE /*type*/, void* /*detail*/, void* /*userdata*/)
+int Markdown::leave_block(MD_BLOCKTYPE /*type*/, void* /*detail*/)
 {
     return 0;
 }
 
-int enter_span_callback(MD_SPANTYPE type, void* /*detail*/, void* /*userdata*/)
+int Markdown::enter_span(MD_SPANTYPE type, void* /*detail*/)
 {
     switch(type) {
         case MD_SPAN_EM:        std::cout << "<em..." << std::endl; break;
@@ -43,12 +77,12 @@ int enter_span_callback(MD_SPANTYPE type, void* /*detail*/, void* /*userdata*/)
     return 0;
 }
 
-int leave_span_callback(MD_SPANTYPE /*type*/, void* /*detail*/, void* /*userdata*/)
+int Markdown::leave_span(MD_SPANTYPE /*type*/, void* /*detail*/)
 {
     return 0;
 }
 
-int text_callback(MD_TEXTTYPE type, const MD_CHAR* text, MD_SIZE /*size*/, void* /*userdata*/)
+int Markdown::text(MD_TEXTTYPE type, const std::string text)
 {
     switch(type) {
         case MD_TEXT_NULLCHAR:  std::cout << "..." << std::endl; break; 
@@ -61,54 +95,25 @@ int text_callback(MD_TEXTTYPE type, const MD_CHAR* text, MD_SIZE /*size*/, void*
     return 0;
 }
 
-void debug_log_callback(const char* /*msg*/, void* /* userdata */)
+void Markdown::debug_log(const char* msg)
 {
 }
 
-/**
- * TODO: we will have to rename this struct...
- */
-struct MD_RENDER_HTML {
-    void (*process_output)(const MD_CHAR*, MD_SIZE, void*);
-    void* userdata;
-    unsigned flags;
-};
-
-void process_output(const MD_CHAR* text, MD_SIZE size, void* userdata)
+void Markdown::parse()
 {
-    // see md2html.c (probably, the c++ version will be very different)
-    // membuf_append((struct membuffer*) userdata, text, size);
-}
-
-struct UserdataPayload
-{
-    std::string content;
-};
-
-int main()
-{
-    std::string content = "# This is _markdown_\n\nA markdown file.";
 
     unsigned parser_flags = 0; // see md2html.c (options handling)
     unsigned renderer_flags = 0; // in the html example: debug(output to stderr) | verbatim_entities
 
     MD_RENDERER renderer = {
-        enter_block_callback,
-        leave_block_callback,
-        enter_span_callback,
-        leave_span_callback,
-        text_callback,
-        debug_log_callback,
+        Markdown::enter_block_callback,
+        Markdown::leave_block_callback,
+        Markdown::enter_span_callback,
+        Markdown::leave_span_callback,
+        Markdown::text_callback,
+        Markdown::debug_log_callback,
         parser_flags
     };
 
-    UserdataPayload userdata{"userdata payload"};
-
-    MD_RENDER_HTML render = {
-        process_output,
-        (void*) &userdata,
-        renderer_flags
-    };
-
-    int status = md_parse(content.c_str(), content.size(), &renderer, (void*) &render);
+    int status = md_parse(content.c_str(), content.size(), &renderer, (void*) this);
 }
