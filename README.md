@@ -1,6 +1,6 @@
 # md4c c++ minimal demo
 
-## Notes
+Two demos for using the markdown parser [md4c](https://github.com/mity/md4c) from c++ code:
 
-- In the original `.h` why does the typedef come before the struct?
-- Why there is a typedef at all?
+- a [straight _c-like_ demo](c-like/)
+- a [demo with static class functions](use-class-static/)
